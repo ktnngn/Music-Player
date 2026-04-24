@@ -2,3 +2,6 @@ customtkinter
 pygame
 Pillow
 mutagen
+spotipy
+yt-dlp
+requests

@@ -5,6 +5,7 @@ import tkinter as tk
 from dotenv import load_dotenv
 import cairosvg
 import io
+import requests
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
@@ -35,7 +36,6 @@ class MusicPlayer(ctk.CTk):
 
         # State
         self.is_playing = False
-        self.current_mode = "spotify"
 
         # Setup Spotify
         self.setup_spotify()
@@ -53,33 +53,17 @@ class MusicPlayer(ctk.CTk):
         # Build UI
         self.build_ui()
 
+        # Start polling Spotify
         self.poll_spotify()
 
     def load_background(self):
         bg_path = os.path.join(os.path.dirname(__file__), "../assets/background.jpg")
         bg_image = Image.open(bg_path).resize((APP_WIDTH, APP_HEIGHT))
         self.bg_photo = ImageTk.PhotoImage(bg_image)
-
-        # Use a label as the background
         self.bg_label = tk.Label(self, image=self.bg_photo)
         self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     def build_ui(self):
-        # Mode switcher
-        self.spotify_btn = ctk.CTkButton(
-            self, text="Spotify", width=120,
-            command=lambda: self.switch_mode("spotify"),
-            fg_color="#1DB954", hover_color="#1aa34a"
-        )
-        self.spotify_btn.place(relx=0.35, y=40, anchor="center")
-
-        self.youtube_btn = ctk.CTkButton(
-            self, text="YouTube", width=120,
-            command=lambda: self.switch_mode("youtube"),
-            fg_color="#333333", hover_color="#444444"
-        )
-        self.youtube_btn.place(relx=0.65, y=40, anchor="center")
-
         # Album art placeholder
         self.art_label = ctk.CTkLabel(
             self, text="No Song Playing",
@@ -143,39 +127,6 @@ class MusicPlayer(ctk.CTk):
         )
         self.next_btn.place(relx=0.7, y=490, anchor="center")
 
-    def switch_mode(self, mode):
-        self.current_mode = mode
-        if mode == "spotify":
-            self.spotify_btn.configure(fg_color="#1DB954")
-            self.youtube_btn.configure(fg_color="#333333")
-        else:
-            self.spotify_btn.configure(fg_color="#333333")
-            self.youtube_btn.configure(fg_color="#FF0000")
-
-    def toggle_play(self):
-        try:
-            if self.is_playing:
-                self.sp.pause_playback()
-                self.play_btn.configure(image=self.play_icon)
-            else:
-                self.sp.start_playback()
-                self.play_btn.configure(image=self.pause_icon)
-            self.is_playing = not self.is_playing
-        except Exception as e:
-            print(f"Error toggling play: {e}")
-
-    def skip_back(self):
-        try:
-            self.sp.previous_track()
-        except Exception as e:
-            print(f"Error skipping back: {e}")
-
-    def skip_next(self):
-        try:
-            self.sp.next_track()
-        except Exception as e:
-            print(f"Error skipping next: {e}")
-
     def setup_spotify(self):
         self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
             client_id=os.getenv("SPOTIFY_CLIENT_ID"),
@@ -204,26 +155,41 @@ class MusicPlayer(ctk.CTk):
             print(f"Error getting track: {e}")
 
     def update_ui(self, title, artist, art_url, progress, duration):
-        # Update labels
         self.title_label.configure(text=title)
         self.artist_label.configure(text=artist)
-
-        # Update progress bar
         self.progress.configure(to=duration)
         self.progress.set(progress)
-
-        # Load album art from URL
-        import requests
-        from PIL import Image
-        import io
         response = requests.get(art_url)
         img = Image.open(io.BytesIO(response.content)).resize((200, 200))
         self.art_photo = ImageTk.PhotoImage(img)
         self.art_label.configure(image=self.art_photo, text="")
 
+    def toggle_play(self):
+        try:
+            if self.is_playing:
+                self.sp.pause_playback()
+                self.play_btn.configure(image=self.play_icon)
+            else:
+                self.sp.start_playback()
+                self.play_btn.configure(image=self.pause_icon)
+            self.is_playing = not self.is_playing
+        except Exception as e:
+            print(f"Error toggling play: {e}")
+
+    def skip_back(self):
+        try:
+            self.sp.previous_track()
+        except Exception as e:
+            print(f"Error skipping back: {e}")
+
+    def skip_next(self):
+        try:
+            self.sp.next_track()
+        except Exception as e:
+            print(f"Error skipping next: {e}")
+
     def poll_spotify(self):
-        if self.current_mode == "spotify":
-            self.get_current_track()
+        self.get_current_track()
         self.after(3000, self.poll_spotify)
 
 # Run the app

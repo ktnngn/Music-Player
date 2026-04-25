@@ -1,7 +1,7 @@
 customtkinter
-pygame
 Pillow
 mutagen
 spotipy
-yt-dlp
 requests
+python-dotenv
+cairosvg

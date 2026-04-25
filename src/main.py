@@ -36,6 +36,8 @@ class MusicPlayer(ctk.CTk):
 
         # State
         self.is_playing = False
+        self.current_progress_ms = 0
+        self.timer_id = None
 
         # Setup Spotify
         self.setup_spotify()
@@ -53,7 +55,8 @@ class MusicPlayer(ctk.CTk):
         # Build UI
         self.build_ui()
 
-        # Start polling Spotify
+        # Start progress timer and Spotify polling
+        self.start_progress_timer()
         self.poll_spotify()
 
     def load_background(self):
@@ -64,38 +67,70 @@ class MusicPlayer(ctk.CTk):
         self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     def build_ui(self):
-        # Album art placeholder
-        self.art_label = ctk.CTkLabel(
-            self, text="No Song Playing",
-            width=200, height=200,
-            fg_color="#1E1E1E", corner_radius=12
+        # Album art
+        self.art_label = tk.Label(
+            self,
+            bg="#10356B",
+            width=300, height=300,
         )
         self.art_label.place(relx=0.5, y=220, anchor="center")
+
+        # Create gray placeholder for album art
+        placeholder = Image.new('RGB', (300, 300), color='#1E1E1E')
+        self.placeholder_photo = ImageTk.PhotoImage(placeholder)
+        self.art_label.configure(image=self.placeholder_photo)
+        self.art_label.image = self.placeholder_photo
+
+        # Add label for placeholder
+        self.placeholder_text = ctk.CTkLabel(
+            self, text="Play a song to start!",
+            font=ctk.CTkFont(size=14),
+            text_color="#AAAAAA", fg_color="transparent",
+            bg_color="#1E1E1E"
+        )
+        self.placeholder_text.place(relx=0.5, y=220, anchor="center")
 
         # Song title
         self.title_label = ctk.CTkLabel(
             self, text="Song Title",
             font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="white", fg_color="transparent"
+            text_color="white", fg_color="transparent", bg_color="#10356B"
         )
-        self.title_label.place(relx=0.5, y=350, anchor="center")
+        self.title_label.place(relx=0.5, y=390, anchor="center")
 
         # Artist name
         self.artist_label = ctk.CTkLabel(
             self, text="Artist Name",
             font=ctk.CTkFont(size=14),
-            text_color="#AAAAAA", fg_color="transparent"
+            text_color="#AAAAAA", fg_color="transparent", bg_color="#10356B"
         )
-        self.artist_label.place(relx=0.5, y=380, anchor="center")
+        self.artist_label.place(relx=0.5, y=420, anchor="center")
 
         # Progress bar
         self.progress = ctk.CTkSlider(
             self, from_=0, to=100,
-            width=300, button_color="white",
+            width=350, button_color="white",
             progress_color="white", fg_color="#2A588D",
-            bg_color="transparent"
+            bg_color="#10356B"
         )
-        self.progress.place(relx=0.5, y=420, anchor="center")
+        self.progress.place(relx=0.5, y=460, anchor="center")
+
+        # Timestamps
+        self.time_current = ctk.CTkLabel(
+            self, text="0:00",
+            font=ctk.CTkFont(size=12),
+            text_color="#AAAAAA", fg_color="transparent",
+            bg_color="#10356B"
+        )
+        self.time_current.place(relx=0.15, y=470, anchor="center")
+
+        self.time_total = ctk.CTkLabel(
+            self, text="0:00",
+            font=ctk.CTkFont(size=12),
+            text_color="#AAAAAA", fg_color="transparent",
+            bg_color="#10356B"
+        )
+        self.time_total.place(relx=0.85, y=470, anchor="center")
 
         # Back button
         self.back_btn = ctk.CTkButton(
@@ -105,7 +140,7 @@ class MusicPlayer(ctk.CTk):
             border_width=0, bg_color="#10356B", corner_radius=0,
             command=self.skip_back
         )
-        self.back_btn.place(relx=0.3, y=490, anchor="center")
+        self.back_btn.place(relx=0.3, y=560, anchor="center")
 
         # Play button
         self.play_btn = ctk.CTkButton(
@@ -115,7 +150,7 @@ class MusicPlayer(ctk.CTk):
             border_width=0, bg_color="#10356B", corner_radius=0,
             command=self.toggle_play
         )
-        self.play_btn.place(relx=0.5, y=490, anchor="center")
+        self.play_btn.place(relx=0.5, y=560, anchor="center")
 
         # Next button
         self.next_btn = ctk.CTkButton(
@@ -125,7 +160,7 @@ class MusicPlayer(ctk.CTk):
             border_width=0, bg_color="#10356B",
             command=self.skip_next
         )
-        self.next_btn.place(relx=0.7, y=490, anchor="center")
+        self.next_btn.place(relx=0.7, y=560, anchor="center")
 
     def setup_spotify(self):
         self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
@@ -154,24 +189,46 @@ class MusicPlayer(ctk.CTk):
         except Exception as e:
             print(f"Error getting track: {e}")
 
+    def start_progress_timer(self):
+        if self.is_playing:
+            self.current_progress_ms += 1000
+            self.progress.set(self.current_progress_ms)
+            self.time_current.configure(text=self.ms_to_time(self.current_progress_ms))
+        self.timer_id = self.after(1000, self.start_progress_timer)
+
     def update_ui(self, title, artist, art_url, progress, duration):
         self.title_label.configure(text=title)
         self.artist_label.configure(text=artist)
         self.progress.configure(to=duration)
-        self.progress.set(progress)
+        self.current_progress_ms = progress
         response = requests.get(art_url)
-        img = Image.open(io.BytesIO(response.content)).resize((200, 200))
+        img = Image.open(io.BytesIO(response.content)).resize((300, 300))
         self.art_photo = ImageTk.PhotoImage(img)
-        self.art_label.configure(image=self.art_photo, text="")
+        self.art_label.configure(image=self.art_photo)
+        self.art_label.image = self.art_photo  
+        self.time_total.configure(text=self.ms_to_time(duration)) 
+        self.placeholder_text.place_forget()
+
+    def ms_to_time(self, ms):
+        seconds = ms // 1000
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return f"{minutes}:{seconds:02d}"
 
     def toggle_play(self):
         try:
             if self.is_playing:
                 self.sp.pause_playback()
                 self.play_btn.configure(image=self.play_icon)
+                # Stop the timer
+                if self.timer_id:
+                    self.after_cancel(self.timer_id)
+                    self.timer_id = None
             else:
                 self.sp.start_playback()
                 self.play_btn.configure(image=self.pause_icon)
+                # Resume the timer
+                self.start_progress_timer()
             self.is_playing = not self.is_playing
         except Exception as e:
             print(f"Error toggling play: {e}")

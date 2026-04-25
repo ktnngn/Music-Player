@@ -153,17 +153,28 @@ class MusicPlayer(ctk.CTk):
             self.youtube_btn.configure(fg_color="#FF0000")
 
     def toggle_play(self):
-        self.is_playing = not self.is_playing
-        if self.is_playing:
-            self.play_btn.configure(image=self.pause_icon)
-        else:
-            self.play_btn.configure(image=self.play_icon)
+        try:
+            if self.is_playing:
+                self.sp.pause_playback()
+                self.play_btn.configure(image=self.play_icon)
+            else:
+                self.sp.start_playback()
+                self.play_btn.configure(image=self.pause_icon)
+            self.is_playing = not self.is_playing
+        except Exception as e:
+            print(f"Error toggling play: {e}")
 
     def skip_back(self):
-        print("Skip back")
+        try:
+            self.sp.previous_track()
+        except Exception as e:
+            print(f"Error skipping back: {e}")
 
     def skip_next(self):
-        print("Skip next")
+        try:
+            self.sp.next_track()
+        except Exception as e:
+            print(f"Error skipping next: {e}")
 
     def setup_spotify(self):
         self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
@@ -176,7 +187,6 @@ class MusicPlayer(ctk.CTk):
     def get_current_track(self):
         try:
             track = self.sp.current_playback()
-            print("Track data:", track)
             if track and track['is_playing']:
                 song = track['item']
                 title = song['name']
@@ -185,6 +195,11 @@ class MusicPlayer(ctk.CTk):
                 duration = song['duration_ms']
                 progress = track['progress_ms']
                 self.update_ui(title, artist, art_url, progress, duration)
+                self.is_playing = track['is_playing']
+                if self.is_playing:
+                    self.play_btn.configure(image=self.pause_icon)
+                else:
+                    self.play_btn.configure(image=self.play_icon)
         except Exception as e:
             print(f"Error getting track: {e}")
 

@@ -1,6 +1,6 @@
 # Python Music Player
 
-![Music Player Screenshot](screenshots/screenshot.png)
+![Music Player Screenshot](screenshots/musicplayerex.png)
 A simple music player interface that connects with your spotify account, built with Python and CustomTkinter.
 
 ## Features

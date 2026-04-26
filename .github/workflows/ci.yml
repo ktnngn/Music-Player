@@ -11,10 +11,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -33,7 +33,7 @@ jobs:
             src/main.py
 
       - name: Upload Mac build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MusicPlayer-Mac
           path: dist/MusicPlayer.app
@@ -42,10 +42,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -59,7 +59,7 @@ jobs:
           pyinstaller --windowed --name "MusicPlayer" --add-data "assets;assets" src/main.py
 
       - name: Upload Windows build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MusicPlayer-Windows
           path: dist/MusicPlayer

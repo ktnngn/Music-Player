@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-mac:
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -21,8 +21,45 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install pyinstaller
 
-      - name: Check for syntax errors
+      - name: Install cairo (Mac)
+        run: brew install cairo
+
+      - name: Build Mac app
         run: |
-          python -m py_compile src/main.py
-          echo "No syntax errors found!"
+          pyinstaller --windowed --name "MusicPlayer" \
+            --add-data "assets:assets" \
+            src/main.py
+
+      - name: Upload Mac build
+        uses: actions/upload-artifact@v3
+        with:
+          name: MusicPlayer-Mac
+          path: dist/MusicPlayer.app
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build Windows app
+        run: |
+          pyinstaller --windowed --name "MusicPlayer" --add-data "assets;assets" src/main.py
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v3
+        with:
+          name: MusicPlayer-Windows
+          path: dist/MusicPlayer

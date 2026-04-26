@@ -8,6 +8,7 @@ import io
 import requests
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+import sys
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +20,12 @@ APP_HEIGHT = 650
 # Set appearance
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and PyInstaller"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.dirname(__file__), '..', relative_path)
 
 def load_icon(path, size=(100, 100)):
     png_data = cairosvg.svg2png(url=path, output_width=size[0], output_height=size[1])
@@ -46,7 +53,7 @@ class MusicPlayer(ctk.CTk):
         self.load_background()
 
         # Load icons
-        icons_path = os.path.join(os.path.dirname(__file__), "../assets/icons")
+        icons_path = resource_path("assets/icons")
         self.play_icon = load_icon(os.path.join(icons_path, "play.svg"))
         self.pause_icon = load_icon(os.path.join(icons_path, "pause.svg"))
         self.back_icon = load_icon(os.path.join(icons_path, "back.svg"))
@@ -60,7 +67,7 @@ class MusicPlayer(ctk.CTk):
         self.poll_spotify()
 
     def load_background(self):
-        bg_path = os.path.join(os.path.dirname(__file__), "../assets/background.jpg")
+        bg_path = resource_path("assets/background.jpg")
         bg_image = Image.open(bg_path).resize((APP_WIDTH, APP_HEIGHT))
         self.bg_photo = ImageTk.PhotoImage(bg_image)
         self.bg_label = tk.Label(self, image=self.bg_photo)
@@ -109,7 +116,7 @@ class MusicPlayer(ctk.CTk):
         # Progress bar
         self.progress = ctk.CTkSlider(
             self, from_=0, to=100,
-            width=350, button_color="white",
+            width=330, button_color="white",
             progress_color="white", fg_color="#2A588D",
             bg_color="#10356B"
         )
@@ -236,14 +243,21 @@ class MusicPlayer(ctk.CTk):
     def skip_back(self):
         try:
             self.sp.previous_track()
+            self.current_progress_ms = 0
+            self.progress.set(0)
+            self.time_current.configure(text="0:00")
         except Exception as e:
             print(f"Error skipping back: {e}")
 
     def skip_next(self):
         try:
             self.sp.next_track()
+            self.current_progress_ms = 0
+            self.progress.set(0)
+            self.time_current.configure(text="0:00")
         except Exception as e:
             print(f"Error skipping next: {e}")
+
 
     def poll_spotify(self):
         self.get_current_track()
